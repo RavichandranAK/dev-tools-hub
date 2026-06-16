@@ -1,0 +1,744 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevTools Hub</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans, 'Inter', sans-serif); background: var(--color-background-tertiary, #f5f5f3); color: var(--color-text-primary, #111); min-height: 100vh; }
+
+  .header { background: var(--color-background-primary, #fff); border-bottom: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .logo i { font-size: 22px; color: #534AB7; }
+  .header-sub { font-size: 13px; color: var(--color-text-secondary, #666); }
+
+  .search-bar { padding: 16px 24px; background: var(--color-background-primary, #fff); border-bottom: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); }
+  .search-input { width: 100%; padding: 10px 14px 10px 38px; border: 0.5px solid var(--color-border-secondary, rgba(0,0,0,0.25)); border-radius: var(--border-radius-md, 8px); font-size: 14px; background: var(--color-background-secondary, #f8f8f6); color: var(--color-text-primary, #111); position: relative; outline: none; }
+  .search-wrap { position: relative; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-secondary, #666); font-size: 16px; pointer-events: none; }
+
+  .layout { display: flex; height: calc(100vh - 105px); }
+  .sidebar { width: 200px; min-width: 200px; background: var(--color-background-primary, #fff); border-right: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); overflow-y: auto; padding: 12px 0; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary, #555); border-left: 2px solid transparent; transition: all 0.15s; }
+  .sidebar-item:hover { background: var(--color-background-secondary, #f5f5f3); color: var(--color-text-primary, #111); }
+  .sidebar-item.active { background: #EEEDFE; color: #534AB7; border-left-color: #534AB7; font-weight: 500; }
+  .sidebar-item i { font-size: 16px; }
+  .sidebar-section { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-tertiary, #999); padding: 16px 16px 4px; }
+
+  .main { flex: 1; overflow-y: auto; padding: 24px; }
+  .tool-panel { background: var(--color-background-primary, #fff); border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); border-radius: var(--border-radius-lg, 12px); padding: 20px; }
+  .tool-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .tool-title i { color: #534AB7; }
+  .tool-desc { font-size: 13px; color: var(--color-text-secondary, #666); margin-bottom: 16px; }
+
+  textarea, input[type=text], select { width: 100%; padding: 10px 12px; border: 0.5px solid var(--color-border-secondary, rgba(0,0,0,0.25)); border-radius: var(--border-radius-md, 8px); font-size: 13px; font-family: var(--font-mono, monospace); background: var(--color-background-secondary, #fafaf8); color: var(--color-text-primary, #111); outline: none; resize: vertical; }
+  textarea:focus, input:focus, select:focus { border-color: #534AB7; box-shadow: 0 0 0 2px rgba(83,74,183,0.12); }
+  select { font-family: var(--font-sans, sans-serif); resize: none; cursor: pointer; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  button { padding: 8px 16px; border: 0.5px solid var(--color-border-secondary, rgba(0,0,0,0.25)); border-radius: var(--border-radius-md, 8px); font-size: 13px; cursor: pointer; background: var(--color-background-primary, #fff); color: var(--color-text-primary, #111); display: inline-flex; align-items: center; gap: 6px; transition: background 0.12s; }
+  button:hover { background: var(--color-background-secondary, #f5f5f3); }
+  button.primary { background: #534AB7; color: #fff; border-color: #534AB7; }
+  button.primary:hover { background: #3C3489; }
+  button.danger { background: #E24B4A; color: #fff; border-color: #E24B4A; }
+  button.danger:hover { background: #A32D2D; }
+
+  .output-box { background: var(--color-background-secondary, #f5f5f3); border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); border-radius: var(--border-radius-md, 8px); padding: 12px; font-family: var(--font-mono, monospace); font-size: 13px; min-height: 80px; white-space: pre-wrap; word-break: break-all; color: var(--color-text-primary, #111); margin-top: 10px; }
+  .output-box.error { color: #E24B4A; background: #FCEBEB; border-color: rgba(226,75,74,0.2); }
+  .output-box.success { color: #3B6D11; background: #EAF3DE; border-color: rgba(99,153,34,0.2); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary, #666); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .grid-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .tool-card { background: var(--color-background-primary, #fff); border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); border-radius: var(--border-radius-lg, 12px); padding: 16px; cursor: pointer; transition: all 0.15s; text-align: left; }
+  .tool-card:hover { border-color: #534AB7; box-shadow: 0 0 0 2px rgba(83,74,183,0.08); }
+  .tool-card i { font-size: 24px; color: #534AB7; display: block; margin-bottom: 8px; }
+  .tool-card-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .tool-card-desc { font-size: 12px; color: var(--color-text-secondary, #666); }
+
+  .status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 10px; border-radius: 100px; font-weight: 500; }
+  .badge-valid { background: #EAF3DE; color: #3B6D11; }
+  .badge-invalid { background: #FCEBEB; color: #A32D2D; }
+  .badge-info { background: #EEEDFE; color: #534AB7; }
+
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+
+  .tabs { display: flex; gap: 2px; margin-bottom: 16px; background: var(--color-background-secondary, #f5f5f3); border-radius: var(--border-radius-md, 8px); padding: 3px; width: fit-content; }
+  .tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary, #666); border: none; background: transparent; font-weight: 400; }
+  .tab.active { background: var(--color-background-primary, #fff); color: var(--color-text-primary, #111); font-weight: 500; border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.12)); }
+
+  .home-hero { text-align: center; padding: 40px 0 32px; }
+  .home-hero h1 { font-size: 28px; font-weight: 500; margin-bottom: 8px; }
+  .home-hero p { color: var(--color-text-secondary, #666); font-size: 15px; }
+
+  .copy-btn { padding: 4px 10px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">DevTools Hub — a collection of developer utility tools</h2>
+
+<div class="header">
+  <div class="logo"><i class="ti ti-tool" aria-hidden="true"></i> DevTools Hub</div>
+  <span class="header-sub">All your dev tools in one place</span>
+</div>
+
+<div class="search-bar">
+  <div class="search-wrap">
+    <i class="ti ti-search search-icon" aria-hidden="true"></i>
+    <input class="search-input" type="text" id="searchInput" placeholder="Search tools..." oninput="filterTools(this.value)">
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" aria-label="Tool categories">
+    <div class="sidebar-section">Tools</div>
+    <div class="sidebar-item active" onclick="showTool('home')" id="nav-home"><i class="ti ti-home" aria-hidden="true"></i> Home</div>
+    <div class="sidebar-section">Text</div>
+    <div class="sidebar-item" onclick="showTool('json')" id="nav-json"><i class="ti ti-braces" aria-hidden="true"></i> JSON formatter</div>
+    <div class="sidebar-item" onclick="showTool('base64')" id="nav-base64"><i class="ti ti-lock" aria-hidden="true"></i> Base64</div>
+    <div class="sidebar-item" onclick="showTool('url')" id="nav-url"><i class="ti ti-link" aria-hidden="true"></i> URL encoder</div>
+    <div class="sidebar-item" onclick="showTool('diff')" id="nav-diff"><i class="ti ti-git-diff" aria-hidden="true"></i> Text diff</div>
+    <div class="sidebar-item" onclick="showTool('case')" id="nav-case"><i class="ti ti-a-b" aria-hidden="true"></i> Case converter</div>
+    <div class="sidebar-section">Generators</div>
+    <div class="sidebar-item" onclick="showTool('hash')" id="nav-hash"><i class="ti ti-hash" aria-hidden="true"></i> Hash generator</div>
+    <div class="sidebar-item" onclick="showTool('uuid')" id="nav-uuid"><i class="ti ti-fingerprint" aria-hidden="true"></i> UUID generator</div>
+    <div class="sidebar-item" onclick="showTool('password')" id="nav-password"><i class="ti ti-shield-lock" aria-hidden="true"></i> Password gen</div>
+    <div class="sidebar-item" onclick="showTool('lorem')" id="nav-lorem"><i class="ti ti-align-left" aria-hidden="true"></i> Lorem ipsum</div>
+    <div class="sidebar-section">Convert</div>
+    <div class="sidebar-item" onclick="showTool('timestamp')" id="nav-timestamp"><i class="ti ti-clock" aria-hidden="true"></i> Timestamp</div>
+    <div class="sidebar-item" onclick="showTool('color')" id="nav-color"><i class="ti ti-palette" aria-hidden="true"></i> Color converter</div>
+    <div class="sidebar-item" onclick="showTool('number')" id="nav-number"><i class="ti ti-123" aria-hidden="true"></i> Number base</div>
+    <div class="sidebar-item" onclick="showTool('regex')" id="nav-regex"><i class="ti ti-regex" aria-hidden="true"></i> Regex tester</div>
+    <div class="sidebar-item" onclick="showTool('jwt')" id="nav-jwt"><i class="ti ti-key" aria-hidden="true"></i> JWT decoder</div>
+    <div class="sidebar-item" onclick="showTool('csv')" id="nav-csv"><i class="ti ti-table" aria-hidden="true"></i> CSV → JSON</div>
+  </nav>
+
+  <main class="main" id="mainContent">
+    <!-- Home -->
+    <div id="tool-home">
+      <div class="home-hero">
+        <h1>Developer Tools Hub</h1>
+        <p>Fast, free, browser-based tools for everyday dev work</p>
+      </div>
+      <div class="grid-tools" id="toolGrid">
+        <button class="tool-card" onclick="showTool('json')"><i class="ti ti-braces"></i><div class="tool-card-name">JSON formatter</div><div class="tool-card-desc">Validate & beautify JSON</div></button>
+        <button class="tool-card" onclick="showTool('base64')"><i class="ti ti-lock"></i><div class="tool-card-name">Base64</div><div class="tool-card-desc">Encode & decode Base64</div></button>
+        <button class="tool-card" onclick="showTool('url')"><i class="ti ti-link"></i><div class="tool-card-name">URL encoder</div><div class="tool-card-desc">Encode & decode URLs</div></button>
+        <button class="tool-card" onclick="showTool('hash')"><i class="ti ti-hash"></i><div class="tool-card-name">Hash generator</div><div class="tool-card-desc">MD5, SHA1, SHA256</div></button>
+        <button class="tool-card" onclick="showTool('uuid')"><i class="ti ti-fingerprint"></i><div class="tool-card-name">UUID generator</div><div class="tool-card-desc">Generate random UUIDs</div></button>
+        <button class="tool-card" onclick="showTool('timestamp')"><i class="ti ti-clock"></i><div class="tool-card-name">Timestamp</div><div class="tool-card-desc">Convert epoch & dates</div></button>
+        <button class="tool-card" onclick="showTool('color')"><i class="ti ti-palette"></i><div class="tool-card-name">Color converter</div><div class="tool-card-desc">HEX, RGB, HSL</div></button>
+        <button class="tool-card" onclick="showTool('regex')"><i class="ti ti-regex"></i><div class="tool-card-name">Regex tester</div><div class="tool-card-desc">Test & debug patterns</div></button>
+        <button class="tool-card" onclick="showTool('jwt')"><i class="ti ti-key"></i><div class="tool-card-name">JWT decoder</div><div class="tool-card-desc">Decode JWT tokens</div></button>
+        <button class="tool-card" onclick="showTool('diff')"><i class="ti ti-git-diff"></i><div class="tool-card-name">Text diff</div><div class="tool-card-desc">Compare two texts</div></button>
+        <button class="tool-card" onclick="showTool('case')"><i class="ti ti-a-b"></i><div class="tool-card-name">Case converter</div><div class="tool-card-desc">camelCase, snake_case…</div></button>
+        <button class="tool-card" onclick="showTool('password')"><i class="ti ti-shield-lock"></i><div class="tool-card-name">Password gen</div><div class="tool-card-desc">Secure random passwords</div></button>
+        <button class="tool-card" onclick="showTool('number')"><i class="ti ti-123"></i><div class="tool-card-name">Number base</div><div class="tool-card-desc">Binary, hex, octal</div></button>
+        <button class="tool-card" onclick="showTool('lorem')"><i class="ti ti-align-left"></i><div class="tool-card-name">Lorem ipsum</div><div class="tool-card-desc">Generate placeholder text</div></button>
+        <button class="tool-card" onclick="showTool('csv')"><i class="ti ti-table"></i><div class="tool-card-name">CSV → JSON</div><div class="tool-card-desc">Convert CSV to JSON</div></button>
+      </div>
+    </div>
+
+    <!-- JSON Formatter -->
+    <div id="tool-json" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-braces"></i> JSON formatter & validator</div>
+        <div class="tool-desc">Paste JSON to format, validate, or minify it.</div>
+        <textarea id="jsonInput" rows="8" placeholder='{"name":"John","age":30}'></textarea>
+        <div class="btn-row">
+          <button class="primary" onclick="formatJSON()"><i class="ti ti-sparkles"></i> Format</button>
+          <button onclick="minifyJSON()"><i class="ti ti-minimize"></i> Minify</button>
+          <button onclick="clearField('jsonInput','jsonOutput')"><i class="ti ti-x"></i> Clear</button>
+        </div>
+        <div class="label">Output</div>
+        <div id="jsonOutput" class="output-box" style="min-height:120px"></div>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="copy-btn" onclick="copyText('jsonOutput')"><i class="ti ti-copy"></i> Copy</button>
+          <span id="jsonStatus"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Base64 -->
+    <div id="tool-base64" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-lock"></i> Base64 encode / decode</div>
+        <div class="tool-desc">Encode text to Base64 or decode Base64 back to text.</div>
+        <div class="tabs">
+          <button class="tab active" onclick="setTab(this,'b64tab','encode')">Encode</button>
+          <button class="tab" onclick="setTab(this,'b64tab','decode')">Decode</button>
+        </div>
+        <textarea id="b64Input" rows="5" placeholder="Enter text..."></textarea>
+        <div class="btn-row">
+          <button class="primary" onclick="doBase64()"><i class="ti ti-arrow-right"></i> Convert</button>
+          <button onclick="clearField('b64Input','b64Output')"><i class="ti ti-x"></i> Clear</button>
+        </div>
+        <div class="label">Result</div>
+        <div id="b64Output" class="output-box"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('b64Output')"><i class="ti ti-copy"></i> Copy</button></div>
+      </div>
+    </div>
+
+    <!-- URL Encoder -->
+    <div id="tool-url" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-link"></i> URL encoder / decoder</div>
+        <div class="tool-desc">Encode or decode URL components.</div>
+        <div class="tabs">
+          <button class="tab active" onclick="setTab(this,'urltab','encode')">Encode</button>
+          <button class="tab" onclick="setTab(this,'urltab','decode')">Decode</button>
+        </div>
+        <textarea id="urlInput" rows="4" placeholder="Enter URL or text..."></textarea>
+        <div class="btn-row">
+          <button class="primary" onclick="doURL()"><i class="ti ti-arrow-right"></i> Convert</button>
+          <button onclick="clearField('urlInput','urlOutput')"><i class="ti ti-x"></i> Clear</button>
+        </div>
+        <div id="urlOutput" class="output-box"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('urlOutput')"><i class="ti ti-copy"></i> Copy</button></div>
+      </div>
+    </div>
+
+    <!-- Hash Generator -->
+    <div id="tool-hash" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-hash"></i> Hash generator</div>
+        <div class="tool-desc">Generate SHA-256 and other hashes from any text input.</div>
+        <textarea id="hashInput" rows="4" placeholder="Enter text to hash..."></textarea>
+        <div class="btn-row">
+          <button class="primary" onclick="generateHash('SHA-256')">SHA-256</button>
+          <button onclick="generateHash('SHA-1')">SHA-1</button>
+          <button onclick="generateHash('SHA-512')">SHA-512</button>
+          <button onclick="clearField('hashInput','hashOutput')"><i class="ti ti-x"></i> Clear</button>
+        </div>
+        <div class="label">Hash output</div>
+        <div id="hashOutput" class="output-box"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('hashOutput')"><i class="ti ti-copy"></i> Copy</button></div>
+      </div>
+    </div>
+
+    <!-- UUID -->
+    <div id="tool-uuid" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-fingerprint"></i> UUID generator</div>
+        <div class="tool-desc">Generate version 4 UUIDs (random).</div>
+        <div class="row">
+          <label style="font-size:13px">Count:</label>
+          <input type="text" id="uuidCount" value="5" style="width:60px;font-family:var(--font-sans)">
+          <button class="primary" onclick="generateUUIDs()"><i class="ti ti-refresh"></i> Generate</button>
+        </div>
+        <div id="uuidOutput" class="output-box" style="min-height:120px"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('uuidOutput')"><i class="ti ti-copy"></i> Copy all</button></div>
+      </div>
+    </div>
+
+    <!-- Timestamp -->
+    <div id="tool-timestamp" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-clock"></i> Timestamp converter</div>
+        <div class="tool-desc">Convert between Unix timestamps and human-readable dates.</div>
+        <div class="two-col">
+          <div>
+            <div class="label">Unix timestamp (seconds)</div>
+            <input type="text" id="tsEpoch" placeholder="e.g. 1718500000">
+            <div class="btn-row" style="margin-top:8px">
+              <button class="primary" onclick="epochToDate()">→ Date</button>
+              <button onclick="setNow()">Now</button>
+            </div>
+          </div>
+          <div>
+            <div class="label">Human date</div>
+            <input type="text" id="tsDate" placeholder="e.g. 2024-06-16T10:00:00">
+            <div class="btn-row" style="margin-top:8px">
+              <button class="primary" onclick="dateToEpoch()">→ Epoch</button>
+            </div>
+          </div>
+        </div>
+        <div id="tsOutput" class="output-box" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- Color Converter -->
+    <div id="tool-color" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-palette"></i> Color converter</div>
+        <div class="tool-desc">Convert between HEX, RGB, and HSL color formats.</div>
+        <div class="row">
+          <input type="color" id="colorPicker" value="#534AB7" oninput="colorFromPicker(this.value)" style="width:44px;height:36px;border-radius:8px;border:0.5px solid var(--color-border-secondary);cursor:pointer;padding:2px">
+          <input type="text" id="hexInput" value="#534AB7" placeholder="#rrggbb" style="width:110px" oninput="convertColor('hex',this.value)">
+        </div>
+        <div class="two-col" style="margin-top:12px">
+          <div>
+            <div class="label">RGB</div>
+            <div id="rgbOut" class="output-box" style="min-height:40px"></div>
+          </div>
+          <div>
+            <div class="label">HSL</div>
+            <div id="hslOut" class="output-box" style="min-height:40px"></div>
+          </div>
+        </div>
+        <div id="colorPreview" style="margin-top:12px;height:40px;border-radius:8px;background:#534AB7;transition:background 0.2s"></div>
+      </div>
+    </div>
+
+    <!-- Regex Tester -->
+    <div id="tool-regex" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-regex"></i> Regex tester</div>
+        <div class="tool-desc">Test regular expressions against your input in real time.</div>
+        <div class="row">
+          <input type="text" id="regexPattern" placeholder="Pattern, e.g. \d+" style="flex:1" oninput="testRegex()">
+          <input type="text" id="regexFlags" value="g" style="width:60px" placeholder="flags" oninput="testRegex()">
+        </div>
+        <textarea id="regexInput" rows="5" placeholder="Test string..." oninput="testRegex()"></textarea>
+        <div id="regexOutput" class="output-box" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- JWT Decoder -->
+    <div id="tool-jwt" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-key"></i> JWT decoder</div>
+        <div class="tool-desc">Decode and inspect JWT tokens. Does not verify signatures.</div>
+        <textarea id="jwtInput" rows="4" placeholder="Paste your JWT token here..." oninput="decodeJWT()"></textarea>
+        <div class="two-col" style="margin-top:12px">
+          <div><div class="label">Header</div><div id="jwtHeader" class="output-box" style="min-height:80px"></div></div>
+          <div><div class="label">Payload</div><div id="jwtPayload" class="output-box" style="min-height:80px"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text Diff -->
+    <div id="tool-diff" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-git-diff"></i> Text diff</div>
+        <div class="tool-desc">Compare two texts and highlight the differences.</div>
+        <div class="two-col">
+          <div><div class="label">Original</div><textarea id="diffA" rows="8" placeholder="Original text..."></textarea></div>
+          <div><div class="label">Changed</div><textarea id="diffB" rows="8" placeholder="Changed text..."></textarea></div>
+        </div>
+        <div class="btn-row" style="margin-top:10px"><button class="primary" onclick="doDiff()"><i class="ti ti-git-diff"></i> Compare</button><button onclick="document.getElementById('diffA').value='';document.getElementById('diffB').value='';document.getElementById('diffOut').innerHTML=''">Clear</button></div>
+        <div class="label" style="margin-top:12px">Diff result</div>
+        <div id="diffOut" class="output-box" style="min-height:80px;white-space:pre-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Case Converter -->
+    <div id="tool-case" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-a-b"></i> Case converter</div>
+        <div class="tool-desc">Convert text between different case formats.</div>
+        <textarea id="caseInput" rows="4" placeholder="Enter your text here..."></textarea>
+        <div class="btn-row" style="margin-top:10px">
+          <button onclick="convertCase('camel')">camelCase</button>
+          <button onclick="convertCase('pascal')">PascalCase</button>
+          <button onclick="convertCase('snake')">snake_case</button>
+          <button onclick="convertCase('kebab')">kebab-case</button>
+          <button onclick="convertCase('upper')">UPPER</button>
+          <button onclick="convertCase('lower')">lower</button>
+          <button onclick="convertCase('title')">Title Case</button>
+        </div>
+        <div id="caseOutput" class="output-box"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('caseOutput')"><i class="ti ti-copy"></i> Copy</button></div>
+      </div>
+    </div>
+
+    <!-- Password Generator -->
+    <div id="tool-password" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-shield-lock"></i> Password generator</div>
+        <div class="tool-desc">Generate strong, random passwords.</div>
+        <div class="row">
+          <label style="font-size:13px">Length:</label>
+          <input type="range" min="8" max="64" value="16" id="pwLen" oninput="document.getElementById('pwLenVal').textContent=this.value;generatePassword()" style="width:140px">
+          <span id="pwLenVal" style="font-size:13px;font-weight:500;min-width:24px">16</span>
+        </div>
+        <div class="row" style="gap:16px;flex-wrap:wrap">
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="pwUpper" checked onchange="generatePassword()"> Uppercase</label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="pwLower" checked onchange="generatePassword()"> Lowercase</label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="pwNum" checked onchange="generatePassword()"> Numbers</label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="pwSym" checked onchange="generatePassword()"> Symbols</label>
+        </div>
+        <div id="pwOutput" class="output-box" style="font-size:16px;letter-spacing:0.04em"></div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="primary" onclick="generatePassword()"><i class="ti ti-refresh"></i> Regenerate</button>
+          <button class="copy-btn" onclick="copyText('pwOutput')"><i class="ti ti-copy"></i> Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lorem Ipsum -->
+    <div id="tool-lorem" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-align-left"></i> Lorem ipsum generator</div>
+        <div class="tool-desc">Generate placeholder text for your designs and mockups.</div>
+        <div class="row">
+          <label style="font-size:13px">Paragraphs:</label>
+          <input type="text" id="loremCount" value="3" style="width:60px;font-family:var(--font-sans)">
+          <button class="primary" onclick="generateLorem()"><i class="ti ti-refresh"></i> Generate</button>
+        </div>
+        <div id="loremOutput" class="output-box" style="min-height:160px;font-family:var(--font-sans);line-height:1.7"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('loremOutput')"><i class="ti ti-copy"></i> Copy</button></div>
+      </div>
+    </div>
+
+    <!-- Number Base -->
+    <div id="tool-number" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-123"></i> Number base converter</div>
+        <div class="tool-desc">Convert numbers between decimal, binary, hex, and octal.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><div class="label">Decimal</div><input type="text" id="numDec" placeholder="e.g. 255" oninput="convertNum('dec',this.value)"></div>
+          <div><div class="label">Binary</div><input type="text" id="numBin" placeholder="e.g. 11111111" oninput="convertNum('bin',this.value)"></div>
+          <div><div class="label">Hexadecimal</div><input type="text" id="numHex" placeholder="e.g. FF" oninput="convertNum('hex',this.value)"></div>
+          <div><div class="label">Octal</div><input type="text" id="numOct" placeholder="e.g. 377" oninput="convertNum('oct',this.value)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV to JSON -->
+    <div id="tool-csv" style="display:none">
+      <div class="tool-panel">
+        <div class="tool-title"><i class="ti ti-table"></i> CSV → JSON converter</div>
+        <div class="tool-desc">Paste CSV data (first row = headers) to convert it to JSON.</div>
+        <textarea id="csvInput" rows="7" placeholder="name,age,city&#10;Alice,30,London&#10;Bob,25,Paris"></textarea>
+        <div class="btn-row">
+          <button class="primary" onclick="convertCSV()"><i class="ti ti-arrow-right"></i> Convert</button>
+          <button onclick="clearField('csvInput','csvOutput')"><i class="ti ti-x"></i> Clear</button>
+        </div>
+        <div id="csvOutput" class="output-box" style="min-height:120px"></div>
+        <div class="btn-row" style="margin-top:8px"><button class="copy-btn" onclick="copyText('csvOutput')"><i class="ti ti-copy"></i> Copy</button></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let currentTool = 'home';
+let b64mode = 'encode';
+let urlmode = 'encode';
+
+function showTool(id) {
+  document.querySelectorAll('[id^="tool-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('tool-' + id).style.display = '';
+  const nav = document.getElementById('nav-' + id);
+  if (nav) nav.classList.add('active');
+  currentTool = id;
+  if (id === 'uuid') generateUUIDs();
+  if (id === 'password') generatePassword();
+  if (id === 'lorem') generateLorem();
+  if (id === 'color') convertColor('hex', '#534AB7');
+  if (id === 'timestamp') setNow();
+}
+
+function setTab(btn, group, mode) {
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  if (group === 'b64tab') b64mode = mode;
+  if (group === 'urltab') urlmode = mode;
+}
+
+function clearField(inp, out) {
+  document.getElementById(inp).value = '';
+  document.getElementById(out).textContent = '';
+  document.getElementById(out).className = 'output-box';
+}
+
+function copyText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent).catch(() => {});
+}
+
+function formatJSON() {
+  const inp = document.getElementById('jsonInput').value.trim();
+  const out = document.getElementById('jsonOutput');
+  const st = document.getElementById('jsonStatus');
+  try {
+    const parsed = JSON.parse(inp);
+    out.textContent = JSON.stringify(parsed, null, 2);
+    out.className = 'output-box success';
+    st.innerHTML = '<span class="status-badge badge-valid"><i class="ti ti-check"></i> Valid JSON</span>';
+  } catch(e) {
+    out.textContent = 'Error: ' + e.message;
+    out.className = 'output-box error';
+    st.innerHTML = '<span class="status-badge badge-invalid"><i class="ti ti-x"></i> Invalid JSON</span>';
+  }
+}
+
+function minifyJSON() {
+  const inp = document.getElementById('jsonInput').value.trim();
+  const out = document.getElementById('jsonOutput');
+  try {
+    out.textContent = JSON.stringify(JSON.parse(inp));
+    out.className = 'output-box';
+  } catch(e) {
+    out.textContent = 'Error: ' + e.message;
+    out.className = 'output-box error';
+  }
+}
+
+function doBase64() {
+  const inp = document.getElementById('b64Input').value;
+  const out = document.getElementById('b64Output');
+  try {
+    if (b64mode === 'encode') out.textContent = btoa(unescape(encodeURIComponent(inp)));
+    else out.textContent = decodeURIComponent(escape(atob(inp)));
+    out.className = 'output-box';
+  } catch(e) {
+    out.textContent = 'Error: ' + e.message;
+    out.className = 'output-box error';
+  }
+}
+
+function doURL() {
+  const inp = document.getElementById('urlInput').value;
+  const out = document.getElementById('urlOutput');
+  try {
+    if (urlmode === 'encode') out.textContent = encodeURIComponent(inp);
+    else out.textContent = decodeURIComponent(inp);
+    out.className = 'output-box';
+  } catch(e) {
+    out.textContent = 'Error: ' + e.message;
+    out.className = 'output-box error';
+  }
+}
+
+async function generateHash(algo) {
+  const inp = document.getElementById('hashInput').value;
+  const out = document.getElementById('hashOutput');
+  if (!inp) { out.textContent = 'Enter some text first.'; return; }
+  const enc = new TextEncoder().encode(inp);
+  const buf = await crypto.subtle.digest(algo, enc);
+  const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  out.textContent = algo + ':\n' + hex;
+}
+
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+}
+
+function generateUUIDs() {
+  const n = Math.min(100, Math.max(1, parseInt(document.getElementById('uuidCount').value) || 5));
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(uuidv4());
+  document.getElementById('uuidOutput').textContent = out.join('\n');
+}
+
+function epochToDate() {
+  const v = parseInt(document.getElementById('tsEpoch').value);
+  if (isNaN(v)) { document.getElementById('tsOutput').textContent = 'Invalid epoch'; return; }
+  const d = new Date(v * 1000);
+  document.getElementById('tsOutput').textContent = `UTC: ${d.toUTCString()}\nISO: ${d.toISOString()}\nLocal: ${d.toLocaleString()}`;
+  document.getElementById('tsDate').value = d.toISOString();
+}
+
+function dateToEpoch() {
+  const v = document.getElementById('tsDate').value;
+  const d = new Date(v);
+  if (isNaN(d)) { document.getElementById('tsOutput').textContent = 'Invalid date'; return; }
+  document.getElementById('tsOutput').textContent = `Epoch: ${Math.floor(d.getTime()/1000)}\nMilliseconds: ${d.getTime()}`;
+  document.getElementById('tsEpoch').value = Math.floor(d.getTime()/1000);
+}
+
+function setNow() {
+  const now = Math.floor(Date.now()/1000);
+  document.getElementById('tsEpoch').value = now;
+  epochToDate();
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16);
+  return { r, g, b };
+}
+
+function rgbToHsl(r,g,b) {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if (max===min) { h=s=0; } else {
+    const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+    h/=6;
+  }
+  return { h: Math.round(h*360), s: Math.round(s*100), l: Math.round(l*100) };
+}
+
+function convertColor(from, val) {
+  try {
+    let rgb;
+    if (from === 'hex') {
+      if (!/^#?[0-9a-fA-F]{3,6}$/.test(val)) return;
+      if (!val.startsWith('#')) val = '#' + val;
+      rgb = hexToRgb(val);
+      document.getElementById('hexInput').value = val;
+      document.getElementById('colorPicker').value = val.length === 7 ? val : '#' + val.replace('#','').split('').map(c=>c+c).join('');
+    }
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    document.getElementById('rgbOut').textContent = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    document.getElementById('hslOut').textContent = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+    document.getElementById('colorPreview').style.background = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+  } catch(e) {}
+}
+
+function colorFromPicker(val) {
+  document.getElementById('hexInput').value = val;
+  convertColor('hex', val);
+}
+
+function testRegex() {
+  const pat = document.getElementById('regexPattern').value;
+  const flags = document.getElementById('regexFlags').value;
+  const inp = document.getElementById('regexInput').value;
+  const out = document.getElementById('regexOutput');
+  if (!pat) { out.textContent = ''; return; }
+  try {
+    const re = new RegExp(pat, flags);
+    const matches = [];
+    let m;
+    if (flags.includes('g')) {
+      while ((m = re.exec(inp)) !== null) { matches.push(m[0]); if (!flags.includes('g')) break; }
+    } else {
+      m = re.exec(inp);
+      if (m) matches.push(m[0]);
+    }
+    if (matches.length === 0) { out.textContent = 'No matches found.'; out.className = 'output-box'; }
+    else { out.textContent = `${matches.length} match${matches.length>1?'es':''}:\n` + matches.map((m,i)=>`[${i+1}] "${m}"`).join('\n'); out.className = 'output-box success'; }
+  } catch(e) {
+    out.textContent = 'Invalid regex: ' + e.message;
+    out.className = 'output-box error';
+  }
+}
+
+function decodeJWT() {
+  const tok = document.getElementById('jwtInput').value.trim();
+  const hOut = document.getElementById('jwtHeader');
+  const pOut = document.getElementById('jwtPayload');
+  if (!tok) { hOut.textContent=''; pOut.textContent=''; return; }
+  try {
+    const [h,p] = tok.split('.');
+    const decode = s => JSON.stringify(JSON.parse(atob(s.replace(/-/g,'+').replace(/_/g,'/'))), null, 2);
+    hOut.textContent = decode(h);
+    pOut.textContent = decode(p);
+    hOut.className = pOut.className = 'output-box success';
+  } catch(e) {
+    hOut.textContent = 'Invalid JWT'; hOut.className = 'output-box error';
+    pOut.textContent = ''; pOut.className = 'output-box';
+  }
+}
+
+function doDiff() {
+  const a = document.getElementById('diffA').value.split('\n');
+  const b = document.getElementById('diffB').value.split('\n');
+  const out = document.getElementById('diffOut');
+  const result = [];
+  const maxLen = Math.max(a.length, b.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (a[i] === b[i]) result.push('  ' + (a[i] || ''));
+    else {
+      if (a[i] !== undefined) result.push('- ' + a[i]);
+      if (b[i] !== undefined) result.push('+ ' + b[i]);
+    }
+  }
+  out.textContent = result.join('\n');
+}
+
+function convertCase(type) {
+  const inp = document.getElementById('caseInput').value;
+  const words = inp.replace(/[-_]/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().split(/\s+/).filter(Boolean);
+  let result = '';
+  switch(type) {
+    case 'camel': result = words.map((w,i)=>i===0?w:w[0].toUpperCase()+w.slice(1)).join(''); break;
+    case 'pascal': result = words.map(w=>w[0].toUpperCase()+w.slice(1)).join(''); break;
+    case 'snake': result = words.join('_'); break;
+    case 'kebab': result = words.join('-'); break;
+    case 'upper': result = inp.toUpperCase(); break;
+    case 'lower': result = inp.toLowerCase(); break;
+    case 'title': result = words.map(w=>w[0].toUpperCase()+w.slice(1)).join(' '); break;
+  }
+  document.getElementById('caseOutput').textContent = result;
+}
+
+function generatePassword() {
+  const len = parseInt(document.getElementById('pwLen').value);
+  const upper = document.getElementById('pwUpper').checked ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '';
+  const lower = document.getElementById('pwLower').checked ? 'abcdefghijklmnopqrstuvwxyz' : '';
+  const nums = document.getElementById('pwNum').checked ? '0123456789' : '';
+  const syms = document.getElementById('pwSym').checked ? '!@#$%^&*()-_=+[]{}|;:,.<>?' : '';
+  const chars = upper + lower + nums + syms;
+  if (!chars) { document.getElementById('pwOutput').textContent = 'Select at least one option.'; return; }
+  const arr = crypto.getRandomValues(new Uint32Array(len));
+  document.getElementById('pwOutput').textContent = Array.from(arr).map(v => chars[v % chars.length]).join('');
+}
+
+const loremWords = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
+
+function generateLorem() {
+  const n = Math.min(20, Math.max(1, parseInt(document.getElementById('loremCount').value) || 3));
+  const paras = [];
+  for (let i = 0; i < n; i++) {
+    const len = 20 + Math.floor(Math.random()*30);
+    const words = [];
+    for (let j = 0; j < len; j++) words.push(loremWords[Math.floor(Math.random()*loremWords.length)]);
+    words[0] = words[0][0].toUpperCase() + words[0].slice(1);
+    paras.push(words.join(' ') + '.');
+  }
+  document.getElementById('loremOutput').textContent = paras.join('\n\n');
+}
+
+function convertNum(from, val) {
+  if (!val) { ['Dec','Bin','Hex','Oct'].forEach(s=>{ if('num'+s.toLowerCase()!=='num'+from) document.getElementById('num'+s).value=''; }); return; }
+  let dec;
+  try {
+    if (from==='dec') dec=parseInt(val,10);
+    else if (from==='bin') dec=parseInt(val,2);
+    else if (from==='hex') dec=parseInt(val,16);
+    else if (from==='oct') dec=parseInt(val,8);
+    if (isNaN(dec)) return;
+    if (from!=='dec') document.getElementById('numDec').value=dec;
+    if (from!=='bin') document.getElementById('numBin').value=dec.toString(2);
+    if (from!=='hex') document.getElementById('numHex').value=dec.toString(16).toUpperCase();
+    if (from!=='oct') document.getElementById('numOct').value=dec.toString(8);
+  } catch(e) {}
+}
+
+function convertCSV() {
+  const inp = document.getElementById('csvInput').value.trim();
+  const out = document.getElementById('csvOutput');
+  if (!inp) { out.textContent = ''; return; }
+  try {
+    const lines = inp.split('\n').filter(l=>l.trim());
+    const headers = lines[0].split(',').map(h=>h.trim());
+    const result = lines.slice(1).map(line => {
+      const vals = line.split(',').map(v=>v.trim());
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = vals[i] !== undefined ? vals[i] : '');
+      return obj;
+    });
+    out.textContent = JSON.stringify(result, null, 2);
+    out.className = 'output-box success';
+  } catch(e) {
+    out.textContent = 'Error: ' + e.message;
+    out.className = 'output-box error';
+  }
+}
+
+function filterTools(query) {
+  const q = query.toLowerCase();
+  const cards = document.querySelectorAll('.tool-card');
+  cards.forEach(c => {
+    const text = c.textContent.toLowerCase();
+    c.style.display = text.includes(q) ? '' : 'none';
+  });
+  if (q && currentTool !== 'home') showTool('home');
+}
+
+showTool('home');
+</script>
+</body>
+</html>
